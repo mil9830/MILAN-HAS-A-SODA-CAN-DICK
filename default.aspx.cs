@@ -314,11 +314,11 @@ namespace iCARS.admin
 
                         if ((nADCurr < nADType) || (nADCurr == nADType))
                         {
-                            szPage += "      <td class=\"lite\"><a href=\"#\">EDIT</a></td>\n";
+                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?op=admin&act=edit&id=" + sdr[0].ToString() + "\">EDIT</a></td>\n";
                         }
                         else
                         {
-                            szPage += "      <td class=\"lite\"><a href=\"#\">EDIT</a> | <a href=\"#\">DELETE</a></td>\n";
+                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?op=admin&act=edit&id=" + sdr[0].ToString()  + "\">EDIT</a> | <a href=\"default.aspx?op=admin&act=delete&id=" + sdr[0].ToString() + "\">DELETE</a></td>\n";
                         }
 
                         szPage += "   </tr>\n";
