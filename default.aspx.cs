@@ -240,8 +240,92 @@ namespace iCARS.admin
             return 0;
         }
 
+        /*****************************************************************************
+         * Author:  Robert Milan
+         * Name:    _editAdmin
+         * Desc:   Edits an admin in the database
+         * 
+         * Returns: (int) -1 if it fails, 0 if it succeeds.
+         *****************************************************************************/
+        protected int _editAdmin(int adID, string adUser, string adPass, string adFName, string adLName, string adLVL)
+        {
+            /////////////////////////////
+            ////////////////////////////////////
+            //////////////////////////////////////////////////////error
+            ////////////////////////////////////////
+            SqlConnection scConn = new SqlConnection(szConnectionString);
+            SqlCommand scStatement = new SqlCommand("UPDATE admin SET username=@adUSER, password=@adPASS, fname=@adFNAME, lname=@adLNAME, lvl=@adLVL WHERE id=@adID", scConn);
+
+            scStatement.Parameters.AddWithValue("@adUSER", adUser);
+            scStatement.Parameters.AddWithValue("@adPASS", adPass);
+            scStatement.Parameters.AddWithValue("@adFNAME", adFName);
+            scStatement.Parameters.AddWithValue("@adLNAME", adLName);
+            scStatement.Parameters.AddWithValue("@adLVL", adLVL);
+            scStatement.Parameters.AddWithValue("@adID", adID.ToString());
+
+            try
+            {
+                scStatement.Connection = scConn;
+                scConn.Open();
+
+                scStatement.ExecuteNonQuery();
+            }
+            catch (Exception m)
+            {
+                szLastErrorMessage = m.Message;
+                return -1;
+            }
+            finally
+            {
+                scConn.Close();
+            }
+
+            return 0;
+        }
 
 
+        /*****************************************************************************
+         * Author:  Robert Milan
+         * Name:    _deleteAdmin
+         * Desc:    deletes an admin from the database.
+         * 
+         * Returns: (int) -1 if it fails, 0 if it succeeds.
+         *****************************************************************************/
+        protected int _deleteAdmin(int adID)
+        {
+            SqlConnection scConn = new SqlConnection(szConnectionString);
+            SqlCommand scStatement = new SqlCommand("DELETE FROM admin WHERE id='@adID'", scConn);
+
+            scStatement.Parameters.AddWithValue("@adID", adID.ToString());
+
+            try
+            {
+                scStatement.Connection = scConn;
+                scConn.Open();
+
+                scStatement.ExecuteNonQuery();
+            }
+            catch (Exception m)
+            {
+                szLastErrorMessage = m.Message;
+                return -1;
+            }
+            finally
+            {
+                scConn.Close();
+            }
+
+            return 0;
+        }
+
+
+        /*****************************************************************************
+         * Author:  Robert Milan
+         * Name:    _displayAdminPage
+         * Desc:    Display's the admin panel
+         * 
+         * Returns: None.
+         *****************************************************************************/
         protected void _displayAdminPage()
         {
             string szPage = "\n<table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
@@ -268,8 +352,6 @@ namespace iCARS.admin
 
                 nCookieExist = 1;
             }
-
-            //adLVL = "2";
 
             if (nCookieExist == 1)
             {
@@ -302,25 +384,21 @@ namespace iCARS.admin
                         /*****************************************************************************
                          *****************************************************************************/
 
-
                         szTemp = "";
-                        int nADType = 0;
-                        int nADCurr = 0;
-
 
                         // Current admin level of the current entry we are grabbing from the db
-                        Int32.TryParse(sdr[5].ToString(), out nADType);
+                        Int32.TryParse(sdr[5].ToString(), out int nADType);
 
                         // Get the current level of the admin whose logged in
-                        Int32.TryParse(adLVL, out nADCurr);
+                        Int32.TryParse(adLVL, out int nADCurr);
 
                         if ((nADCurr < nADType) || (nADCurr == nADType))
                         {
-                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?op=admin&act=edit&id=" + sdr[0].ToString() + "\">EDIT</a></td>\n";
+                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?pid=admin&act=edit&id=" + sdr[0].ToString() + "\">EDIT</a></td>\n";
                         }
                         else
                         {
-                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?op=admin&act=edit&id=" + sdr[0].ToString()  + "\">EDIT</a> | <a href=\"default.aspx?op=admin&act=delete&id=" + sdr[0].ToString() + "\">DELETE</a></td>\n";
+                            szPage += "      <td class=\"lite\"><a href=\"default.aspx?pid=admin&act=edit&id=" + sdr[0].ToString() + "\">EDIT</a> | <a href=\"default.aspx?pid=admin&act=delete&id=" + sdr[0].ToString() + "\">DELETE</a></td>\n";
                         }
 
                         szPage += "   </tr>\n";
@@ -389,7 +467,7 @@ namespace iCARS.admin
                 szPage += "      </td>\n";
                 szPage += "   </tr>\n";
                 szPage += "</table></form>\n";
-                szPage += "<br />\n<hr />\n<br />\n";
+                szPage += "<br />\n";
             }
 
             _content.InnerHtml = szPage;
@@ -397,11 +475,6 @@ namespace iCARS.admin
 
         protected void Page_Load(object sender, EventArgs e)
         {
-
-            // _content.InnerHtml = "Cookie: " + Request.Cookies["nimda"]["auth"].ToString();
-            //_content.InnerHtml = "Index: " + _getAdminIndex("ad1") + "<br />Last Error: " + szLastErrorMessage;
-            //return;
-
             /********************************
              * Check if cookies are enabled *
              /*******************************/
@@ -437,27 +510,119 @@ namespace iCARS.admin
                     // Determine what page we are looking at
                     if (Request.QueryString.Count != 0)
                     {
-                        // handle pages
+                        // Ensure we have a page identifier
                         if (Request.QueryString["pid"] != null)
                         {
+                            // Handle the admin panel
                             if (Request.QueryString["pid"].ToLower() == "admin")
                             {
-                                _displayAdminPage();
+                                if (Request.QueryString["act"] != null)
+                                {
+                                    string szACT = Request.QueryString["act"].ToString().ToLower();
+                                    if (szACT == "edit")
+                                    {
+                                        if (Request.QueryString["id"] != null)
+                                        {
+                                            if (int.TryParse(Request.QueryString["id"].ToString(), out int nIndex))
+                                            {
+                                                string szUSER = _getAdminField(nIndex, 1);
+                                                //string szPASS = _getAdminField(nIndex, 2);
+                                                string szFNAME = _getAdminField(nIndex, 3);
+                                                string szLNAME = _getAdminField(nIndex, 4);
+                                                string szLVL = _getAdminField(nIndex, 5);
+
+                                                string szPage = "";
+                                                szPage += "\n<form id=\"frmEdit\" method=\"post\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"op\" name=\"op\" value=\"admin\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"act\" name=\"act\" value=\"edit\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + nIndex.ToString() + "\">\n";
+                                                szPage += "<table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
+                                                szPage += "   <tr style=\"font-weight: bold; text-decoration: underline;\">\n";
+                                                szPage += "      <td class=\"dark\">\n";
+                                                szPage += "         <h1>ADD ADMIN</h1>\n";
+                                                szPage += "         <br />\n";
+                                                szPage += "         <table style=\"margin: auto; width: 100 %;\">\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Username:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"adUSER\" name=\"adUSER\" type=\"text\" value=\"" + szUSER + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Password (No change in left blank):&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"adPASS\" name=\"adPASS\" type=\"text\" value=\"\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">First Name:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"adFNAME\" name=\"adFNAME\" type=\"text\" value=\"" + szFNAME + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Last Name:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"adLNAME\" name=\"adLNAME\" type=\"text\" value=\"" + szLNAME + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">[0, 1, or 2] Level:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"adLVL\" name=\"adLVL\" type=\"text\" value=\"" + szLVL + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">All changes are final once you click 'Edit Admin'!</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><div style=\"width: 301px; text-align: right;\"><input style=\"width: 100px;\" id=\"btnEditAdmin\" name=\"submit\" type=\"submit\" value=\"Edit Admin\" /></div></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "         </table>\n";
+                                                szPage += "      </td>\n";
+                                                szPage += "   </tr>\n";
+                                                szPage += "</table></form>\n";
+
+                                                _content.InnerHtml = szPage;
+                                            }
+                                            else
+                                            {
+                                                Response.Redirect("default.aspx");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Response.Redirect("default.aspx");
+                                        }
+                                    }
+
+
+                                    else if (szACT == "delete")
+                                    {
+                                        ////////
+                                    }
+                                }
+                                else
+                                {
+                                    // No identifier, display default page.
+                                    _displayAdminPage();
+                                }
                             }
+
 
                             else if (Request.QueryString["pid"].ToLower() == "brand")
                             {
                                 _content.InnerHtml = "<div style=\"text-align: center;\">Display Brand</div>";
                             }
 
+
                             else if (Request.QueryString["pid"].ToLower() == "category")
                             {
                                 _content.InnerHtml = "<div style=\"text-align: center;\">Display Category</div>";
                             }
 
+
                             else if (Request.QueryString["pid"].ToLower() == "item")
                             {
                                 _content.InnerHtml = "<div style=\"text-align: center;\">Display Item</div>";
+                            }
+
+
+                            else if (Request.QueryString["pid"].ToLower() == "logout")
+                            {
+                                HttpCookie hcAdmin = new HttpCookie("nimda");
+                                hcAdmin.Expires = DateTime.Now.AddDays(-1d);
+
+                                Page.Response.Cookies.Add(hcAdmin);
+                                Response.Redirect("default.aspx");
                             }
 
                             else
@@ -465,8 +630,6 @@ namespace iCARS.admin
                                 _displayAdminPage();
                             }
                         }
-
-                        //_content.InnerHtml = "Query String: " + Request.QueryString.ToString();
                     }
                     else
                     {
@@ -539,7 +702,9 @@ namespace iCARS.admin
                 // Reset error counter
                 int nErrFound = 0;
 
-                // Deal with login param
+                /*************************************************
+                /* Handle admin operations                       *
+                 *************************************************/
                 if (szOP == "login")
                 {
                     /* Ensure the user entered some info */
@@ -580,9 +745,6 @@ namespace iCARS.admin
                     }
                 }
 
-                /*************************************************
-                /* Handle admin operations                       *
-                 *************************************************/
                 if (szOP == "admin")
                 {
                     // Ensure that "act" exists
@@ -606,8 +768,7 @@ namespace iCARS.admin
 
                             if (nErrFound == 1)
                             {
-                                _content.InnerHtml = Request.Form.ToString();
-                                return;
+                                Response.Redirect("default.aspx");
                             }
 
                             if (nErrFound == 0)
@@ -684,7 +845,7 @@ namespace iCARS.admin
                                 }
                                 else
                                 {
-
+                                    // Add the admin, if a error occurs adding the admin then we let the end-user know an error has occurred.
                                     if (_addAdmin(szUser, szPass, szFName, szLName, szLVL) != -1)
                                     {
                                         Response.Redirect("default.aspx");
@@ -704,17 +865,127 @@ namespace iCARS.admin
                         // Edit a admin
                         else if (szAct == "edit")
                         {
+                            if (Request.Form["id"] != null)
+                            {
+                                nErrFound = 0;
 
+                                // Make sure all values passed from the form
+                                if (Request.Form["adUSER"] == null) { nErrFound = 1; }
+                                if (Request.Form["adPASS"] == null) { nErrFound = 1; }
+                                if (Request.Form["adFNAME"] == null) { nErrFound = 1; }
+                                if (Request.Form["adLNAME"] == null) { nErrFound = 1; }
+                                if (Request.Form["adLVL"] == null) { nErrFound = 1; }
+
+                                if (nErrFound == 1)
+                                {
+                                    _content.InnerHtml = Request.Form.ToString();
+                                    return;
+                                }
+
+                                if (nErrFound == 0)
+                                {
+                                    string szPass = "";
+                                    if (Request.Form["adPass"] != null) { szPass = Request.Form["adPass"]; }
+
+                                    string szUser = Request.Form["adUser"];
+                                    string szLName = Request.Form["adFName"];
+                                    string szFName = Request.Form["adLName"];
+                                    string szLVL = Request.Form["adLVL"];
+
+                                    string szPage = "<div style=\"text-align: center;\">[ ERROR ]<hr style=\"width: 300px;\"/>\n";
+                                    if (szUser.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;username!&#34;</div><br />\n";
+                                    }
+
+
+                                    if (szPass.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;password!&#34;</div><br />\n";
+                                    }
+
+                                    if (szFName.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;first name!&#34;</div><br />\n";
+                                    }
+
+                                    if (szLName.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;last name!&#34;</div><br />\n";
+                                    }
+
+                                    Boolean blnRet = Int32.TryParse(szLVL, out int nLVL);
+                                    if (blnRet == false)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a valid number, alphanumeric values are not allowed for &#34;level!&#34;</div><br />\n";
+                                    }
+
+                                    if (Enumerable.Range(0, 3).Contains(nLVL) == false)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a valid number between of (0, 1, or 2) for &#34;level!&#34;</div><br />\n";
+                                    }
+
+                                    //////////////////////////
+                                    if (nErrFound == 1)
+                                    {
+                                        _content.InnerHtml = szPage + "<hr style=\"width: 300px;\"/><a href=\"default.aspx?pid=edit&id=" + Request.QueryString["id"] + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                    }
+
+
+                                    if (int.TryParse(Request.Form["id"].ToString(), out int nIndex))
+                                    {
+                                        // Grab the password and check if it's blank or had data
+                                        string szPWD = szPass;
+                                        if (szPWD.Length > 0) // It has data so it's a new password that needs encrypted
+                                        {
+                                            szPWD = _encryptPWD(szPWD);
+                                        }
+                                        else
+                                        {
+                                            // It doesn't have data so grab the old password to re-enter into the database
+                                            szPWD = _getAdminField(nIndex, 2);
+                                        }
+
+                                        // edit the admin table
+                                        if (_editAdmin(nIndex, Request.Form["adUser"].ToString(), szPWD, Request.Form["adFName"].ToString(), Request.Form["adLName"].ToString(), Request.Form["adLVL"].ToString()) == 0)
+                                        {
+                                            Response.Redirect("default.aspx");
+                                        }
+                                        else
+                                        {
+                                            _content.InnerHtml = "<div style=\"text-align: center;\">Error: " + szLastErrorMessage + "<a href=\"default.aspx?pid=admin&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=admin&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                    }
+
+                                }
+                                else
+                                {
+                                    Response.Redirect("default.aspx");
+                                }
+                            }
                         }
 
                         // Remove a admin
                         else if (szAct == "delete")
                         {
+                            ////////////////////////// work on login!
+
 
                         }
+
                         else
                         {
-                            _content.InnerHtml = "<div style=\"text-align: center;\">ERROR: Invalid operation!<br /><a href=\"default.aspx\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>\n";
+                            Response.Redirect("default.aspx");
                         }
                     }
                 }
@@ -733,6 +1004,12 @@ namespace iCARS.admin
                 {
                     _content.InnerHtml = "ITEM!";
                 }
+            }
+
+            // Specify logout link, if an admin is logged in
+            if (nIsAdmin == 1)
+            {
+                _content.InnerHtml += "<hr><div class=\"bevel\" style=\"text-align: center;\">[<a href=\"default.aspx?pid=logout\" style=\"text-decoration: underline;\">Logout</a>]</div>";
             }
         }
     }
