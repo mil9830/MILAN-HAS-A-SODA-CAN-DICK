@@ -1,0 +1,9 @@
+C:\Users\rmila\source\repos\iCARS\iCARS\bin\iCARS.dll.config
+C:\Users\rmila\source\repos\iCARS\iCARS\bin\iCARS.dll
+C:\Users\rmila\source\repos\iCARS\iCARS\bin\iCARS.pdb
+C:\Users\rmila\source\repos\iCARS\iCARS\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.dll
+C:\Users\rmila\source\repos\iCARS\iCARS\bin\Microsoft.CodeDom.Providers.DotNetCompilerPlatform.xml
+C:\Users\rmila\source\repos\iCARS\iCARS\obj\Debug\iCARS.csprojResolveAssemblyReference.cache
+C:\Users\rmila\source\repos\iCARS\iCARS\obj\Debug\iCARS.csproj.CoreCompileInputs.cache
+C:\Users\rmila\source\repos\iCARS\iCARS\obj\Debug\iCARS.dll
+C:\Users\rmila\source\repos\iCARS\iCARS\obj\Debug\iCARS.pdb
