@@ -200,7 +200,7 @@ namespace iCARS.admin
         /*****************************************************************************
          * Author:  Robert Milan
          * Name:    _getBrandIndex
-         * Desc:    Retreives a brand index from the brand table and
+         * Desc:    Retreives a category index from the category table and
          *              then returns it.
          * 
          * Returns: "ERROR!" if an error occurred or admin is not found. Otherwise, it
@@ -210,6 +210,44 @@ namespace iCARS.admin
         {
             SqlConnection scConn = new SqlConnection(szConnectionString);
             SqlCommand scStatement = new SqlCommand(String.Format("select * from category where name='{0}' and brand_id={1}", szName, nBrandID), scConn);
+
+            int nRet = -1;
+
+            try
+            {
+                scConn.Open();
+
+                SqlDataReader sdr = scStatement.ExecuteReader();
+
+                sdr.Read();
+                nRet = Convert.ToInt32(sdr[0]);
+            }
+            catch (Exception m)
+            {
+                szLastErrorMessage = m.Message;
+            }
+            finally
+            {
+                scConn.Close();
+            }
+
+            return nRet;
+        }
+
+
+        /*****************************************************************************
+         * Author:  Robert Milan
+         * Name:    _getItemIndex
+         * Desc:    Retreives an item index from the item table and
+         *              then returns it.
+         * 
+         * Returns: "ERROR!" if an error occurred or admin is not found. Otherwise, it
+         *              will return the data in the data field selected.
+         *****************************************************************************/
+        protected int _getItemIndex(string szName, int nCatID)
+        {
+            SqlConnection scConn = new SqlConnection(szConnectionString);
+            SqlCommand scStatement = new SqlCommand(String.Format("select * from item where name='{0}' and cat_id={1}", szName, nCatID), scConn);
 
             int nRet = -1;
 
@@ -278,8 +316,8 @@ namespace iCARS.admin
         /*****************************************************************************
          * Author:  Robert Milan
          * Name:    _getBrandField
-         * Desc:    Retreives an admin from the admin table and then returns 
-         *              a piece of the admin field based on nField (0 to 5).
+         * Desc:    Retreives a brand from the brand table and then returns 
+         *              a piece of the brand field based on nField (0 to 5).
          * 
          * Returns: "ERROR!" if an error occurred or admin is not found. Otherwise, it
          *              will return the data in the data field selected.
@@ -317,9 +355,9 @@ namespace iCARS.admin
 
         /*****************************************************************************
         * Author:  Robert Milan
-        * Name:    _getBrandField
-        * Desc:    Retreives an admin from the admin table and then returns 
-        *              a piece of the admin field based on nField (0 to 5).
+        * Name:    _getCategoryField
+        * Desc:    Retreives an category from the category table and then returns 
+        *              a piece of the category field based on nField (0 to 5).
         * 
         * Returns: "ERROR!" if an error occurred or admin is not found. Otherwise, it
         *              will return the data in the data field selected.
@@ -340,6 +378,46 @@ namespace iCARS.admin
                 sdr.Read();
 
                 for (int n = 0; n <= 2; n++) { if (n == nField) { szTemp = sdr[n].ToString(); } }
+            }
+            catch (Exception m)
+            {
+                szLastErrorMessage = m.Message;
+                szTemp = "ERROR!";
+            }
+            finally
+            {
+                scConn.Close();
+            }
+
+            return szTemp;
+        }
+
+
+        /*****************************************************************************
+       * Author:  Robert Milan
+       * Name:    _getItemField
+       * Desc:    Retreives an Item from the Item table and then returns 
+       *              a piece of the Item field based on nField (0 to 7).
+       * 
+       * Returns: "ERROR!" if an error occurred or admin is not found. Otherwise, it
+       *              will return the data in the data field selected.
+       *****************************************************************************/
+        protected string _getItemField(int nIndex, int nField)
+        {
+            SqlConnection scConn = new SqlConnection(szConnectionString);
+            SqlCommand scStatement = new SqlCommand(String.Format("select * from item where id='{0}'", nIndex), scConn);
+
+            string szTemp = "";
+
+            try
+            {
+                scConn.Open();
+
+                SqlDataReader sdr = scStatement.ExecuteReader();
+
+                sdr.Read();
+
+                for (int n = 0; n <= 8; n++) { if (n == nField) { szTemp = sdr[n].ToString(); } }
             }
             catch (Exception m)
             {
@@ -473,10 +551,10 @@ namespace iCARS.admin
          * 
          * Returns: (int) -1 if it fails, 0 if it succeeds.
          *****************************************************************************/
-        protected int _addItem(string szName, string szDescription, double fPrice, int nCatID, int nRatingID, int nLength, int nWidth, int nWeight, string szShippingInfo)
+        protected int _addItem(string szName, string szDescription, double fPrice, int nCatID, int nLength, int nWidth, int nWeight, string szShippingInfo)
         {
             SqlConnection scConn = new SqlConnection(szConnectionString);
-            SqlCommand scStatement = new SqlCommand("INSERT [dbo].[item] ([name], [description], [price], [cat_id], [rating_id], [length], [width], [weight], [shipping_info]) VALUES (@iName, @iDesc, @iPrice, @iCID, @iRID, @iLength, @iWidth, @iWeight, @iShippingInfo)", scConn);
+            SqlCommand scStatement = new SqlCommand("INSERT [dbo].[item] ([name], [description], [price], [cat_id], [length], [width], [weight], [shipping_info]) VALUES (@iName, @iDesc, @iPrice, @iCID, @iLength, @iWidth, @iWeight, @iShippingInfo)", scConn);
 
             try
             {
@@ -484,7 +562,6 @@ namespace iCARS.admin
                 scStatement.Parameters.AddWithValue("@iDesc", szDescription);
                 scStatement.Parameters.AddWithValue("@iPrice", fPrice.ToString());
                 scStatement.Parameters.AddWithValue("@iCID", nCatID.ToString());
-                scStatement.Parameters.AddWithValue("@iRID", nRatingID.ToString());
                 scStatement.Parameters.AddWithValue("@iLength", nLength.ToString());
                 scStatement.Parameters.AddWithValue("@iWidth", nWeight.ToString());
                 scStatement.Parameters.AddWithValue("@iWeight", nWeight.ToString());
@@ -634,6 +711,53 @@ namespace iCARS.admin
             return 0;
         }
 
+
+        /*****************************************************************************
+         * Author:  Robert Milan
+         * Name:    _edititem
+         * Desc:   Edits a item in the database
+         * 
+         * Returns: (int) -1 if it fails, 0 if it succeeds.
+         *****************************************************************************/
+        protected int _editItem(int ID, string szName, string szDesc, double fPrice, int nCatID, int nLength, int nWidth, int nWeight, string szShippingInfo)
+        {
+            /////////////////////////////
+            ////////////////////////////////////
+            //////////////////////////////////////////////////////error
+            ////////////////////////////////////////
+            SqlConnection scConn = new SqlConnection(szConnectionString);
+            SqlCommand scStatement = new SqlCommand("UPDATE item SET name=@szName, description=@szDesc, price=@fPrice, cat_id=@nCatID, length=@nLength, width=@nWidth, weight=@nWeight, shipping_info=@szShippingInfo WHERE id=@ID", scConn);
+
+            scStatement.Parameters.AddWithValue("@szName", szName);
+            scStatement.Parameters.AddWithValue("@szDesc", szDesc);
+            scStatement.Parameters.AddWithValue("@fPrice", fPrice.ToString());
+            scStatement.Parameters.AddWithValue("@nCatID", nCatID.ToString());
+            scStatement.Parameters.AddWithValue("@nLength", nLength.ToString());
+            scStatement.Parameters.AddWithValue("@nWidth", nWidth.ToString());
+            scStatement.Parameters.AddWithValue("@nWeight", nWeight.ToString());
+            scStatement.Parameters.AddWithValue("@szShippingInfo", szShippingInfo);
+            scStatement.Parameters.AddWithValue("@ID", ID.ToString());
+
+
+            try
+            {
+                scStatement.Connection = scConn;
+                scConn.Open();
+
+                scStatement.ExecuteNonQuery();
+            }
+            catch (Exception m)
+            {
+                szLastErrorMessage = m.Message;
+                return -1;
+            }
+            finally
+            {
+                scConn.Close();
+            }
+
+            return 0;
+        }
 
         /*****************************************************************************
          * Author:  Robert Milan
@@ -1311,46 +1435,69 @@ namespace iCARS.admin
                 szPage += "\n<form id=\"frmAddItem\" method=\"post\">\n";
                 szPage += "   <input type=\"hidden\" id=\"op\" name=\"op\" value=\"item\">\n";
                 szPage += "   <input type=\"hidden\" id=\"act\" name=\"act\" value=\"add\">";
-                szPage += "<table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
-                szPage += "   <tr style=\"font-weight: bold; text-decoration: underline;\">\n";
-                szPage += "      <td class=\"dark\">\n";
-                szPage += "         <h1>ADD ITEM</h1>\n";
-                szPage += "         <br />\n";
-                szPage += "         <table style=\"margin: auto; width: 100 %;\">\n";
-                szPage += "            <tr>\n";
-                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Name:&nbsp;</td>\n";
-                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iName\" name=\"iName\" type=\"text\" /></td>\n";
-                szPage += "            </tr>\n";
-                szPage += "            <tr>\n";
-                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Description:&nbsp;</td>\n";
-                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iDesc\" name=\"iDesc\" type=\"text\" /></td>\n";
-                szPage += "            </tr>\n";
-                szPage += "            <tr>\n";
-                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Price:&nbsp;</td>\n";
-                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iPrice\" name=\"iPrice\" type=\"text\" /></td>\n";
-                szPage += "            </tr>\n";
+                szPage += "   <table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
+                szPage += "      <tr style=\"font-weight: bold; text-decoration: underline;\">\n";
+                szPage += "         <td class=\"dark\">\n";
+                szPage += "            <h1>ADD ITEM</h1>\n";
+                szPage += "            <br />\n";
+                szPage += "            <table style=\"margin: auto; width: 100 %;\">\n";
+                szPage += "               <tr>\n";
+                szPage += "                  <td style=\"text-align: right; width: 40%;\">Item Name:&nbsp;</td>\n";
+                szPage += "                  <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iName\" name=\"iName\" type=\"text\" /></td>\n";
+                szPage += "               </tr>\n";
+                szPage += "               <tr>\n";
+                szPage += "                  <td style=\"text-align: right; width: 40%;\">Item Description:&nbsp;</td>\n";
+                szPage += "                  <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iDesc\" name=\"iDesc\" type=\"text\" /></td>\n";
+                szPage += "               </tr>\n";
+                szPage += "               <tr>\n";
+                szPage += "                  <td style=\"text-align: right; width: 40%;\">Item Price:&nbsp;</td>\n";
+                szPage += "                  <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iPrice\" name=\"iPrice\" type=\"text\" /></td>\n";
+                szPage += "               </tr>\n";
 
 
                 SqlConnection scConn = new SqlConnection(szConnectionString);
-                SqlCommand scStatement = new SqlCommand("SELECT * from category", scConn);
+                SqlCommand scStatement = new SqlCommand("SELECT * from brand", scConn);
 
                 try
                 {
                     scConn.Open();
 
-                    SqlDataReader sdr = scStatement.ExecuteReader();
+                    szPage += "            <tr>\n";
+                    szPage += "               <td style=\"text-align: right; width: 40%;\">Select a Category:&nbsp;</td>\n";
+                    szPage += "               <td style=\"text-align: left; width: 60%;\">\n";
+                    szPage += "                  <select id=\"cid\" name=\"cid\" style=\"width: 301px;\">\n";
 
-
-                    szPage += "   <tr>\n";
-                    szPage += "      <td style=\"text-align: right; width: 40%;\">Select a Category:&nbsp;</td>\n";
-                    szPage += "      <td style=\"text-align: left; width: 60%;\">\n";
-                    szPage += "         <select id=\"cid\" name=\"cid\" style=\"width: 301px;\">\n";
-                    while (sdr.Read())
+                    SqlDataReader sdrBrand = scStatement.ExecuteReader();
+                    while (sdrBrand.Read())
                     {
-                        szPage += "            <option value=\"" + sdr[1].ToString() + "\">" + sdr[1].ToString() + "</option>\n";
-                    }
+                        szPage += "                  <optgroup label=\"" + sdrBrand[1].ToString() + "\">\n"; // BRAND
 
-                    szPage += "      </td>\n   </tr>\n";
+
+
+                        SqlConnection scConn2 = new SqlConnection(szConnectionString);
+                        SqlCommand scStatement2 = new SqlCommand(String.Format("SELECT * from category WHERE brand_id={0}", sdrBrand[0].ToString()), scConn2);
+
+                        try
+                        {
+                            scConn2.Open();
+                            SqlDataReader sdrCategory = scStatement2.ExecuteReader();
+                            while (sdrCategory.Read())
+                            {
+                                szPage += "                        <option value=\"" + sdrCategory[1].ToString() + "\">" + sdrCategory[1].ToString() + "</option>\n";
+                            }
+                        }
+                        catch (Exception m)
+                        {
+                            szLastErrorMessage = m.Message;
+                        }
+                        finally
+                        {
+                            scConn2.Close();
+                        }
+                        szPage += "                     </optgroup>\n";
+                    }
+                    szPage += "                  </select>\n";
+                    szPage += "               </td>\n            </tr>\n";
                 }
                 catch (Exception m)
                 {
@@ -1360,7 +1507,7 @@ namespace iCARS.admin
                 {
                     scConn.Close();
                 }
-
+                
                 szPage += "            <tr>\n";
                 szPage += "               <td style=\"text-align: right; width: 40%;\">Item Length:&nbsp;</td>\n";
                 szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iLength\" name=\"iLength\" type=\"text\" /></td>\n";
@@ -1377,14 +1524,14 @@ namespace iCARS.admin
                 szPage += "               <td style=\"text-align: right; width: 40%;\">Item Shipping Information:&nbsp;</td>\n";
                 szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iShInfo\" name=\"iShInfo\" type=\"text\" /></td>\n";
                 szPage += "            </tr>\n";
-                szPage += "         <tr>\n";
-                szPage += "            <td style=\"text-align: right; width: 40%;\"></td>\n";
-                szPage += "            <td style=\"text-align: left; width: 60%;\"><div style=\"width: 301px; text-align: right;\"><input style=\"width: 100px;\" id=\"btnAddItem\" name=\"submit\" type=\"submit\" value=\"Add Item\" /></div></td>\n";
-                szPage += "         </tr>\n";
-                szPage += "      </table>\n";
-                szPage += "      </td>\n";
-                szPage += "   </tr>\n";
-                szPage += "</table></form>\n";
+                szPage += "            <tr>\n";
+                szPage += "               <td style=\"text-align: right; width: 40%;\"></td>\n";
+                szPage += "               <td style=\"text-align: left; width: 60%;\"><div style=\"width: 301px; text-align: right;\"><input style=\"width: 100px;\" id=\"btnAddItem\" name=\"submit\" type=\"submit\" value=\"Add Item\" /></div></td>\n";
+                szPage += "            </tr>\n";
+                szPage += "         </table>\n";
+                szPage += "         </td>\n";
+                szPage += "      </tr>\n";
+                szPage += "   </table>\n</form>\n";
                 szPage += "<br />\n";
             }
 
@@ -1799,7 +1946,193 @@ namespace iCARS.admin
                              *****************************************************************************/
                             else if (Request.QueryString["pid"].ToLower() == "item")
                             {
-                                _displayItemPage();
+                                if (Request.QueryString["act"] != null)
+                                {
+                                    string szACT = Request.QueryString["act"].ToString().ToLower();
+                                    if (szACT == "edit")
+                                    {
+                                        if (Request.QueryString["id"] != null)
+                                        {
+                                            if (int.TryParse(Request.QueryString["id"].ToString(), out int nIndex))
+                                            {
+                                                string szName = _getItemField(nIndex, 1);
+                                                string szDesc = _getItemField(nIndex, 2);
+                                                string szPrice = _getItemField(nIndex, 3);
+                                                string szCatID = _getItemField(nIndex, 4);
+                                                string szLength = _getItemField(nIndex, 5);
+                                                string szWidth = _getItemField(nIndex, 6);
+                                                string szWeight = _getItemField(nIndex, 7);
+                                                string szShInfo = _getItemField(nIndex, 8);
+
+                                                string szPage = "";
+                                                szPage += "\n<form id=\"frmEdit\" method=\"post\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"op\" name=\"op\" value=\"item\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"act\" name=\"act\" value=\"edit\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + nIndex.ToString() + "\">\n";
+                                                szPage += "<table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
+                                                szPage += "   <tr style=\"font-weight: bold; text-decoration: underline;\">\n";
+                                                szPage += "      <td class=\"dark\">\n";
+                                                szPage += "         <h1>EDIT ITEM</h1>\n";
+                                                szPage += "         <br />\n";
+                                                szPage += "         <table style=\"margin: auto; width: 100 %;\">\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Name:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iName\" name=\"iName\" type=\"text\" value=\"" + szName + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Description:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iDesc\" name=\"iDesc\" type=\"text\" value=\"" + szDesc + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: right; width: 40%;\">Item Price:&nbsp;</td>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iPrice\" name=\"iPrice\" type=\"text\" value=\"" + szPrice + "\" /></td>\n";
+                                                szPage += "            </tr>\n";
+
+
+                                                SqlConnection scConn = new SqlConnection(szConnectionString);
+                                                SqlCommand scStatement = new SqlCommand("SELECT * from brand", scConn);
+
+                                                try
+                                                {
+                                                    scConn.Open();
+
+                                                    szPage += "         <tr>\n";
+                                                    szPage += "            <td style=\"text-align: right; width: 40%;\">Select a Category:&nbsp;</td>\n";
+                                                    szPage += "            <td style=\"text-align: left; width: 60%;\">\n";
+                                                    szPage += "               <select id=\"cid\" name=\"cid\" style=\"width: 301px;\">\n";
+
+                                                    SqlDataReader sdrBrand = scStatement.ExecuteReader();
+                                                    while (sdrBrand.Read())
+                                                    {
+                                                        szPage += "               <optgroup label=\"" + sdrBrand[1].ToString() + "\">\n"; // BRAND
+
+
+
+                                                        SqlConnection scConn2 = new SqlConnection(szConnectionString);
+                                                        SqlCommand scStatement2 = new SqlCommand(String.Format("SELECT * from category WHERE brand_id={0}", sdrBrand[0].ToString()), scConn2);
+
+                                                        try
+                                                        {
+                                                            scConn2.Open();
+                                                            SqlDataReader sdrCategory = scStatement2.ExecuteReader();
+                                                            while (sdrCategory.Read())
+                                                            {
+                                                                if (sdrCategory[0].ToString() == szCatID)
+                                                                {
+                                                                    szPage += "                     <option value=\"" + sdrCategory[1].ToString() + "\" selected>" + sdrCategory[1].ToString() + "</option>\n";
+                                                                }
+                                                                else
+                                                                {
+                                                                    szPage += "                     <option value=\"" + sdrCategory[1].ToString() + "\">" + sdrCategory[1].ToString() + "</option>\n";
+                                                                }
+                                                            }
+                                                        }
+                                                        catch (Exception m)
+                                                        {
+                                                            szLastErrorMessage = m.Message;
+                                                        }
+                                                        finally
+                                                        {
+                                                            scConn2.Close();
+                                                        }
+                                                        szPage += "                  </optgroup>\n";
+                                                    }
+                                                    szPage += "               </select>\n";
+                                                    szPage += "            </td>\n         </tr>\n";
+                                                }
+                                                catch (Exception m)
+                                                {
+                                                    szLastErrorMessage = m.Message;
+                                                }
+                                                finally
+                                                {
+                                                    scConn.Close();
+                                                }
+
+                                                szPage += "         <tr>\n";
+                                                szPage += "            <td style=\"text-align: right; width: 40%;\">Item Length:&nbsp;</td>\n";
+                                                szPage += "            <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iLength\" name=\"iLength\" type=\"text\" value=\"" + szLength + "\" /></td>\n";
+                                                szPage += "         </tr>\n";
+                                                szPage += "         <tr>\n";
+                                                szPage += "            <td style=\"text-align: right; width: 40%;\">Item Width:&nbsp;</td>\n";
+                                                szPage += "            <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iWidth\" name=\"iWidth\" type=\"text\" value=\"" + szWidth + "\" /></td>\n";
+                                                szPage += "         </tr>\n";
+                                                szPage += "         <tr>\n";
+                                                szPage += "            <td style=\"text-align: right; width: 40%;\">Item Weight:&nbsp;</td>\n";
+                                                szPage += "            <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iWeight\" name=\"iWeight\" type=\"text\" value=\"" + szWeight + "\" /></td>\n";
+                                                szPage += "         </tr>\n";
+                                                szPage += "         <tr>\n";
+                                                szPage += "            <td style=\"text-align: right; width: 40%;\">Item Shipping Information:&nbsp;</td>\n";
+                                                szPage += "            <td style=\"text-align: left; width: 60%;\"><input style=\"width: 300px;\" id=\"iShInfo\" name=\"iShInfo\" type=\"text\" value=\"" + szShInfo + "\" /></td>\n";
+                                                szPage += "         </tr>\n";
+
+                                                szPage += "         <tr>\n";
+                                                szPage += "            <td style=\"text-align: right; width: 40%;\">All changes are final once you click 'Edit Item'!</td>\n";
+                                                szPage += "            <td style=\"text-align: left; width: 60%;\"><div style=\"width: 301px; text-align: right;\"><input style=\"width: 100px;\" id=\"btnEditItem\" name=\"submit\" type=\"submit\" value=\"Edit Item\" /></div></td>\n";
+                                                szPage += "         </tr>\n";
+                                                szPage += "      </table>\n";
+                                                szPage += "   </td>\n";
+                                                szPage += "   </tr>\n";
+                                                szPage += "</table></form>\n";
+
+                                                _content.InnerHtml = szPage;
+                                                
+                                            }
+                                            else
+                                            {
+                                                Response.Redirect("default.aspx?pid=item");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Response.Redirect("default.aspx?pid=item");
+                                        }
+                                    }
+
+
+                                    else if (szACT == "delete")
+                                    {
+                                        if (Request.QueryString["id"] != null)
+                                        {
+                                            if (int.TryParse(Request.QueryString["id"].ToString(), out int nIndex))
+                                            {
+                                                string szPage = "";
+                                                szPage += "\n<form id=\"frmDelete\" method=\"post\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"op\" name=\"op\" value=\"item\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"act\" name=\"act\" value=\"delete\">\n";
+                                                szPage += "   <input type=\"hidden\" id=\"id\" name=\"id\" value=\"" + nIndex.ToString() + "\">\n";
+                                                szPage += "<table style=\"text-align: center; margin-left: 10%; margin-right: 10%; width: 80%;\">\n";
+                                                szPage += "   <tr style=\"font-weight: bold; text-decoration: none;\">\n";
+                                                szPage += "      <td class=\"dark\">\n";
+                                                szPage += "         <h1>DELETE ITEM</h1>\n";
+                                                szPage += "         <br />\n";
+                                                szPage += "         <table style=\"margin: auto; width: 100 %;\">\n";
+                                                szPage += "            <tr>\n";
+                                                szPage += "               <td style=\"text-align: left; width: 60%;\">Are you sure you want to delete '" + _getItemField(nIndex, 1) + "'?:&nbsp;&nbsp;<input style=\"width: 100px;\" id=\"btnDeleteItem\" name=\"submit\" type=\"submit\" value=\"Delete\" /></td>\n";
+                                                szPage += "            </tr>\n";
+                                                szPage += "         </table>\n";
+                                                szPage += "      </td>\n";
+                                                szPage += "   </tr>\n";
+                                                szPage += "</table></form>\n";
+
+                                                _content.InnerHtml = szPage;
+                                            }
+                                            else
+                                            {
+                                                Response.Redirect("default.aspx?pid=item");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Response.Redirect("default.aspx?pid=item");
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    // No identifier, display default page.
+                                    _displayItemPage();
+                                }
                             }
                             /*****************************************************************************
                              *****************************************************************************
@@ -2553,14 +2886,18 @@ namespace iCARS.admin
                         // Add a admin
                         if (szAct == "add")
                         {
-                            _content.InnerHtml = Request.Form.ToString().Substring(Request.Form.ToString().IndexOf("&op="));
-                            // catName, bid
-                            /*
                             nErrFound = 0;
 
                             // Make sure all values passed from the form
-                            if (Request.Form["catName"] == null) { nErrFound = 1; }
-                            if (Request.Form["bid"] == null) { nErrFound = 1; }
+                            if (Request.Form["iName"] == null) { nErrFound = 1; }
+                            if (Request.Form["iDesc"] == null) { nErrFound = 1; }
+                            if (Request.Form["iPrice"] == null) { nErrFound = 1; }
+                            if (Request.Form["cid"] == null) { nErrFound = 1; }
+                            if (Request.Form["iLength"] == null) { nErrFound = 1; }
+                            if (Request.Form["iWidth"] == null) { nErrFound = 1; }
+                            if (Request.Form["iWeight"] == null) { nErrFound = 1; }
+                            if (Request.Form["iShInfo"] == null) { nErrFound = 1; }
+
 
                             if (nErrFound == 1)
                             {
@@ -2569,8 +2906,14 @@ namespace iCARS.admin
 
                             if (nErrFound == 0)
                             {
-                                string szName = Request.Form["catName"];
-                                string szBrandID = Request.Form["bid"];
+                                string szName = Request.Form["iName"];
+                                string szDesc = Request.Form["iDesc"];
+                                string szPrice = Request.Form["iPrice"];
+                                string szCID = Request.Form["cid"]; // got to retreive brand id before we can retreive the cat id
+                                string szLength = Request.Form["iLength"];
+                                string szWidth = Request.Form["iWidth"];
+                                string szWeight = Request.Form["iWeight"];
+                                string szShInfo = Request.Form["iShInfo"];
 
                                 string szPage = "<div style=\"text-align: center;\">[ ERROR ]<hr style=\"width: 300px;\"/>\n";
                                 if (szName.Length == 0)
@@ -2579,37 +2922,108 @@ namespace iCARS.admin
                                     szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;item name!&#34;</div><br />\n";
                                 }
 
-
-
-                                if (_getCategoryIndex(szName, _getBrandIndex(szBrandID)) != -1)
+                                if (szDesc.Length == 0)
                                 {
                                     nErrFound = 1;
-                                    szPage += "<div style=\"color: #FF0000\">The &#34;category name&#34; you entered already exists!</div><br />\n";
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;description!&#34;</div><br />\n";
+                                }
+
+                                if (szPrice.Length == 0)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;price!&#34;</div><br />\n";
                                 }
 
 
-                                //////////////////////////
+                                if (szCID.Length == 0)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;category!&#34;</div><br />\n";
+                                }
+
+                                if (szLength.Length == 0)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;length!&#34;</div><br />\n";
+                                }
+
+
+                                if (szWeight.Length == 0)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;weight!&#34;</div><br />\n";
+                                }
+
+
+                                if (szShInfo.Length == 0)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">You need to enter the &#34;shipping information!&#34;</div><br />\n";
+                                }
+
+                                if (_getItemIndex(szName, _getBrandIndex(szCID)) != -1)
+                                {
+                                    nErrFound = 1;
+                                    szPage += "<div style=\"color: #FF0000\">The &#34;item name&#34; you entered already exists!</div><br />\n";
+                                }
+
                                 if (nErrFound == 1)
                                 {
                                     _content.InnerHtml = szPage + "<hr style=\"width: 300px;\"/><a href=\"default.aspx?pid=item\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
                                 }
                                 else
                                 {
-                                    // Add the admin, if a error occurs adding the admin then we let the end-user know an error has occurred.
-                                    //if (_addCategory(szName, _getBrandIndex(szBrandID)) != -1)
-                                    //{
-                                    //    Response.Redirect("default.aspx?pid=item");
-                                    //}
-                                    //else
-                                    //{
-                                    //    _content.InnerHtml = "<div style=\"text-align: center;\">[ ERROR: " + szLastErrorMessage + " ]<hr style=\"width: 300px;\"/>\n<div style=\"color: #FF0000\">Error creating the item name &#34;" + szName + ".&#34;<br /><a href=\"default.aspx?pid=item\" style=\"text-decoration: underline;\">Click here</a> to go back.</div><br />\n";
-                                    //}
+                                    /*
+                                     
+                                        We need to grab the category id and the brand id so that we can grab indexes and values.
+                                     
+                                     */
+                                    SqlConnection scConn = new SqlConnection(szConnectionString);
+                                    SqlCommand scStatement = new SqlCommand("SELECT * from category", scConn);
+
+                                    int nCID = 0;
+
+                                    string szTempPage = "";
+                                    try
+                                    {
+                                        scConn.Open();
+                                        SqlDataReader sdr = scStatement.ExecuteReader();
+
+                                        // Grab the category ID based on the category NAME
+                                        while (sdr.Read()) { if (sdr[1].ToString() == szCID) { int.TryParse(sdr[0].ToString(), out nCID); } }
+                                    }
+                                    catch (Exception m)
+                                    {
+                                        szLastErrorMessage = m.Message;
+                                        _content.InnerHtml = szLastErrorMessage;
+                                    }
+                                    finally
+                                    {
+                                        scConn.Close();
+                                        _content.InnerHtml = szTempPage;
+                                    }
+
+                                    szPrice = String.Format("{0:0.00}", Convert.ToDouble(szPrice));
+                                    double.TryParse(szPrice, out double dblPrice);
+
+                                    int.TryParse(szLength, out int nLength);
+                                    int.TryParse(szWidth, out int nWidth);
+                                    int.TryParse(szWeight, out int nWeight);
+
+                                    if (_addItem(szName, szDesc, dblPrice, nCID, nLength, nWidth, nWeight, szShInfo) != -1)
+                                    {
+                                        Response.Redirect("default.aspx?pid=item");
+                                    }
+                                    else
+                                    {
+                                        _content.InnerHtml = "<div style=\"text-align: center;\">[ ERROR: " + szLastErrorMessage + " ]<hr style=\"width: 300px;\"/>\n<div style=\"color: #FF0000\">Error creating the item name &#34;" + szName + ".&#34;<br /><a href=\"default.aspx?pid=item\" style=\"text-decoration: underline;\">Click here</a> to go back.</div><br />\n";
+                                    }
                                 }
                             }
                             else
                             {
                                 _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=item\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
-                            }*/
+                            }
                         }
 
 
@@ -2621,57 +3035,140 @@ namespace iCARS.admin
                                 nErrFound = 0;
 
                                 // Make sure all values passed from the form
-                                if (Request.Form["catName"] == null) { nErrFound = 1; }
-                                if (Request.Form["bid"] == null) { nErrFound = 1; }
+                                if (Request.Form["iName"] == null) { nErrFound = 1; }
+                                if (Request.Form["iDesc"] == null) { nErrFound = 1; }
+                                if (Request.Form["iPrice"] == null) { nErrFound = 1; }
+                                if (Request.Form["cid"] == null) { nErrFound = 1; }
+                                if (Request.Form["iLength"] == null) { nErrFound = 1; }
+                                if (Request.Form["iWidth"] == null) { nErrFound = 1; }
+                                if (Request.Form["iWeight"] == null) { nErrFound = 1; }
+                                if (Request.Form["iShInfo"] == null) { nErrFound = 1; }
+
 
                                 if (nErrFound == 1)
                                 {
-                                    _content.InnerHtml = Request.Form.ToString() + "<hr>" + szLastErrorMessage;
-                                    return;
+                                    Response.Redirect("default.aspx?pid=item");
                                 }
 
                                 if (nErrFound == 0)
                                 {
-                                    string szName = Request.Form["catName"];
-                                    string szBrandID = Request.Form["bid"];
+                                    string szName = Request.Form["iName"];
+                                    string szDesc = Request.Form["iDesc"];
+                                    string szPrice = Request.Form["iPrice"];
+                                    string szCID = Request.Form["cid"];
+                                    string szLength = Request.Form["iLength"];
+                                    string szWidth = Request.Form["iWidth"];
+                                    string szWeight = Request.Form["iWeight"];
+                                    string szShInfo = Request.Form["iShInfo"];
 
+
+
+                                    SqlConnection scConn = new SqlConnection(szConnectionString);
+                                    SqlCommand scStatement = new SqlCommand("SELECT * from category", scConn);
+
+                                    int nCID = 0;
+                                    try
+                                    {
+                                        scConn.Open();
+                                        SqlDataReader sdr = scStatement.ExecuteReader();
+
+                                        // Grab the category ID based on the category NAME
+                                        while (sdr.Read()) { if (sdr[1].ToString() == szCID) { int.TryParse(sdr[0].ToString(), out nCID); } }
+                                    }
+                                    catch (Exception m)
+                                    {
+                                        szLastErrorMessage = m.Message;
+                                        _content.InnerHtml = szLastErrorMessage;
+                                    }
+                                    finally
+                                    {
+                                        scConn.Close();
+                                    }
 
                                     string szPage = "<div style=\"text-align: center;\">[ ERROR ]<hr style=\"width: 300px;\"/>\n";
                                     if (szName.Length == 0)
                                     {
                                         nErrFound = 1;
-                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;category name!&#34;</div><br />\n";
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;item name!&#34;</div><br />\n";
                                     }
 
-                                    //////////////////////////
+                                    if (szDesc.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;description!&#34;</div><br />\n";
+                                    }
+
+                                    if (szPrice.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;price!&#34;</div><br />\n";
+                                    }
+
+
+                                    if (szCID.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;category!&#34;</div><br />\n";
+                                    }
+
+                                    if (szLength.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;length!&#34;</div><br />\n";
+                                    }
+
+
+                                    if (szWeight.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter a &#34;weight!&#34;</div><br />\n";
+                                    }
+
+
+                                    if (szShInfo.Length == 0)
+                                    {
+                                        nErrFound = 1;
+                                        szPage += "<div style=\"color: #FF0000\">You need to enter the &#34;shipping information!&#34;</div><br />\n";
+                                    }
+
                                     if (nErrFound == 1)
                                     {
-                                        _content.InnerHtml = szPage + "<hr style=\"width: 300px;\"/><a href=\"default.aspx?pid=item&act=edit&id=" + Request.QueryString["id"] + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                        _content.InnerHtml = szPage + "<hr style=\"width: 300px;\"/><a href=\"default.aspx?pid=item\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
                                     }
 
-
-                                    if (int.TryParse(Request.Form["id"].ToString(), out int nIndex))
+                                    if (nErrFound == 0)
                                     {
-
-                                        // edit the brand table
-                                        if (_editCategory(nIndex, szName, _getBrandIndex(szBrandID)) == 0)
+                                        if (int.TryParse(Request.Form["id"].ToString(), out int nIndex))
                                         {
-                                            Response.Redirect("default.aspx?pid=item");
+                                            // Create conversions;
+                                            szPrice = String.Format("{0:0.00}", Convert.ToDouble(szPrice));
+                                            double.TryParse(szPrice, out double dblPrice);
+
+                                            int.TryParse(szLength, out int nLength);
+                                            int.TryParse(szWidth, out int nWidth);
+                                            int.TryParse(szWeight, out int nWeight);
+
+
+                                            // edit the brand table
+                                            if (_editItem(nIndex, szName, szDesc, dblPrice, nCID, nLength, nWidth, nWeight, szShInfo) == 0)
+                                            {
+                                                Response.Redirect("default.aspx?pid=item");
+                                            }
+                                            else
+                                            {
+                                                _content.InnerHtml = "<div style=\"text-align: center;\">Error: " + szLastErrorMessage + "<a href=\"default.aspx?pid=item&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                            }
                                         }
                                         else
                                         {
-                                            _content.InnerHtml = "<div style=\"text-align: center;\">Error: " + szLastErrorMessage + "<a href=\"default.aspx?pid=item&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                            _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=item&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
                                         }
+
                                     }
                                     else
                                     {
-                                        _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=item&act=edit&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                        Response.Redirect("default.aspx?pid=item");
                                     }
-
-                                }
-                                else
-                                {
-                                    Response.Redirect("default.aspx?pid=item");
                                 }
                             }
                         }
@@ -2685,23 +3182,23 @@ namespace iCARS.admin
                                 if (int.TryParse(Request.Form["id"].ToString(), out int nIndex))
                                 {
                                     // delete admin from the table
-                                    if (_deleteCategory(nIndex) == 0)
+                                    if (_deleteItem(nIndex) == 0)
                                     {
-                                        Response.Redirect("default.aspx?pid=category");
+                                        Response.Redirect("default.aspx?pid=item");
                                     }
                                     else
                                     {
-                                        _content.InnerHtml = "<div style=\"text-align: center;\">Error: " + szLastErrorMessage + "<a href=\"default.aspx?pid=category&act=delete&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                        _content.InnerHtml = "<div style=\"text-align: center;\">Error: " + szLastErrorMessage + "<a href=\"default.aspx?pid=item&act=delete&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
                                     }
                                 }
                                 else
                                 {
-                                    _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=category&act=delete&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
+                                    _content.InnerHtml = "<div style=\"text-align: center;\">An unknown error has occurred!<a href=\"default.aspx?pid=item&act=delete&id=" + nIndex.ToString() + "\" style=\"text-decoration: underline;\">Click here</a> to go back.</div>";
                                 }
                             }
                             else
                             {
-                                Response.Redirect("default.aspx?pid=category");
+                                Response.Redirect("default.aspx?pid=item");
                             }
                         }
                         else
