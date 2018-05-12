@@ -5,15 +5,29 @@
 <html>
 <head runat="server">
     <title></title>
+    <style>
+        body {
+            color: #000000;
+            background-color: #FFFFFF;
+            margin: 0;
+        }
+        </style>
     <asp:ContentPlaceHolder ID="head" runat="server">
     </asp:ContentPlaceHolder>
 </head>
 <body>
+    <table style="width: 100%; height: 100px; background-color: #0099FF;" border="0">
+        <tr>
+            <td style="text-align: center; color: #FFFFFF;"><h1>iCARS</h1></td>
+        </tr>
+    </table>
     <form id="form1" runat="server">
         <div>
             <asp:ContentPlaceHolder ID="ContentPlaceHolder1" runat="server">
             </asp:ContentPlaceHolder>
         </div>
     </form>
+    <br />
+    <br />
 </body>
 </html>

@@ -5,7 +5,7 @@
 <html>
 <head runat="server">
     <title>iCars - Admin Panel</title>
-    <link href="../css/style.css" rel="stylesheet" />
+    <link href="../css/adstyle.css" rel="stylesheet" />
     <style type="text/css">
         .auto-style1 {
             width: 50%;
